@@ -9,7 +9,10 @@ This repository contains a fully interactive **Power BI dashboard** built to hel
 
 ## 🖼️ Dashboard Preview
 
-![DAX Cheat Sheet Preview](https://raw.githubusercontent.com/vm8181/Dax-Cheat-Sheet-Power-BI/main/assets/DAX_Cheat_Sheet_Dashboard.png)
+![DAX_Cheat_Sheet_Dashboard](https://github.com/user-attachments/assets/1eb3389a-76f0-4481-8182-a68c5b90f588)
+
+
+
 *Replace this link with your actual image path or GitHub asset*
 
 ---
