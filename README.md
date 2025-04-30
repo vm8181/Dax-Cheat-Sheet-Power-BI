@@ -50,11 +50,8 @@ This combined M code includes:
 - A **main function** that loads multiple DAX function categories
 - A nested call to `DaxFunctionsDetails`, which scrapes Syntax, Return Values, Remarks, and Release Date from each DAX function page
 
-```m
-//-------------------------------------
-// Main Loader Code
-//-------------------------------------
 **Category Level Data Loader**
+```m
 let
     Source = Web.BrowserContents("https://dax.guide/"),
     ExtractedTable = Html.Table(Source, {
@@ -64,9 +61,9 @@ let
     #"Renamed Columns" = Table.RenameColumns(ExtractedTable,{{"Function Type", "DaxFunctionTypes"}})
 in
     #"Renamed Columns"
-
-```m
+```
 **Functions Level Data Loader**
+```m
 let
     FunctionCategoriesText = ParamFunctionsName,
     FunctionCategories = Text.Split(FunctionCategoriesText, ","),
@@ -119,11 +116,10 @@ let
     })
 in
     #"Changed Type"
+```
 
+**DaxFunctionsDetails Function**
 ```m
-//-------------------------------------
-// DaxFunctionsDetails Function
-//-------------------------------------
 let
     Source = (url as text) =>
     let
@@ -166,4 +162,4 @@ let
         Combined
 in
     Source
-
+```
