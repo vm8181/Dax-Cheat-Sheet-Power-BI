@@ -3,7 +3,8 @@
 [![Power BI](https://img.shields.io/badge/Built%20With-Power%20BI-yellow.svg)](https://powerbi.microsoft.com/)
 [![Data Source](https://img.shields.io/badge/Data%20Source-DAX.Guide-33b5e5)](https://dax.guide)
 
-This repository contains a fully interactive **Power BI dashboard** built to help users explore and learn **DAX functions** dynamically. Data is fetched and updated from the [DAX.Guide](https://dax.guide) portal using Power Query, with parameters to filter by function type, release year, and more.
+This is a dynamic, visually interactive **DAX Cheat Sheet Dashboard** built in **Power BI** using **Power Query**.  
+It pulls live data from the [DAX.Guide](https://dax.guide) portal and allows users to search, filter, and reference DAX functions in a structured way.
 
 ---
 
