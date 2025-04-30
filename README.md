@@ -44,7 +44,7 @@ It pulls live data from the [DAX.Guide](https://dax.guide) portal and allows use
 | DAX.Guide        | Official source for DAX function metadata      |
 
 ---
-## 🧾 Power Query (M) Code – DAX Function Scraper
+## 🧾 Power Query (M) Code – DAX Function
 
 The following M function extracts **Syntax**, **Return Values**, **Remarks**, and **Release Date** from a given DAX function URL using HTML scraping from [DAX.Guide](https://dax.guide):
 
@@ -94,3 +94,69 @@ let
         Combined
 in
     Source
+---
+
+## 🔄 Dynamic Function Metadata Loader (Main M Script)
+
+This M code uses parameters like `ParamFunctionsName` and `ParamWebPath` to iterate through multiple DAX function categories on [DAX.Guide](https://dax.guide). It scrapes metadata including function name, description, syntax, return values, remarks, and first release date.
+
+```m
+let
+    // Reference the parameter
+    FunctionCategoriesText = ParamFunctionsName,
+    
+    // Convert the comma-separated string to a list
+    FunctionCategories = Text.Split(FunctionCategoriesText, ","),
+
+    // Define a function to get data for each category
+    GetFunctionData = (FunctionName as text) =>
+    let
+        ParamFunctionName = "functions/" & FunctionName,
+        Source = Web.BrowserContents(ParamWebPath & ParamFunctionName),
+
+        ExtractedTable = Html.Table(Source, {
+            {"Function Name", "table tbody tr td a"},  
+            {"Description", "table tbody tr td + td"}
+        }, [RowSelector = "table tbody tr"]),
+
+        ExtractedSections = Html.Table(Source, {
+            {"Function Type", "h1"}
+        }, [RowSelector = "div.entry-content header"]),
+
+        Result = [Type = ExtractedSections, Name = ExtractedTable]
+    in
+        Result,
+
+    // Apply the function to all categories
+    AllFunctionData = List.Transform(FunctionCategories, each GetFunctionData(_)),
+    ExpandRecords = Table.FromRecords(AllFunctionData),
+    ExpandedName = Table.ExpandTableColumn(ExpandRecords, "Name", {"Function Name", "Description"}),
+    ExpandedType = Table.ExpandTableColumn(ExpandedName, "Type", {"Function Type"}),
+
+    Filtered = Table.SelectRows(ExpandedType, each ([Function Name] <> null)),
+
+    Links = Table.AddColumn(Filtered, "Link", each ParamWebPath & Text.Lower([Function Name])),
+
+    AddExtractedData = Table.AddColumn(Links, "Extracted Data", each DaxFunctionsDetails([Link])),
+
+    ExpandedAll = Table.ExpandTableColumn(AddExtractedData, "Extracted Data", {
+        "Syntax", "ReturnValues", "Remarks", "ReleaseDate"
+    }),
+    ExpandedSyntax = Table.ExpandTableColumn(ExpandedAll, "Syntax", {"Syntax"}),
+    ExpandedReturn = Table.ExpandTableColumn(ExpandedSyntax, "ReturnValues", {"Return Values"}),
+    ExpandedRemarks = Table.ExpandTableColumn(ExpandedReturn, "Remarks", {"Remarks"}),
+    ExpandedDate = Table.ExpandTableColumn(ExpandedRemarks, "ReleaseDate", {"FirstReleaseDate"}),
+
+    InsertedDate = Table.AddColumn(ExpandedDate, "Dates", each Text.End([FirstReleaseDate], 10), type text),
+
+    #"Changed Type" = Table.TransformColumnTypes(InsertedDate, {
+        {"Dates", type date},
+        {"Function Type", type text},
+        {"Function Name", type text},
+        {"Description", type text},
+        {"Remarks", type text},
+        {"Return Values", type text},
+        {"Syntax", type text}
+    })
+in
+    #"Changed Type"
