@@ -1,4 +1,4 @@
-# 📊 Dax-Cheat-Sheet-Power-BI
+# 📊 Power BI DAXpedia Dashboard
 
 [![Power BI](https://img.shields.io/badge/Built%20With-Power%20BI-yellow.svg)](https://powerbi.microsoft.com/)
 [![Data Source](https://img.shields.io/badge/Data%20Source-DAX.Guide-33b5e5)](https://dax.guide)
@@ -35,19 +35,4 @@ This repository contains a fully interactive **Power BI dashboard** built to hel
 
 ---
 
-## 📁 Files Included
 
-| File Name            | Description                                         |
-|----------------------|-----------------------------------------------------|
-| `DaxCheatSheet.pbix` | Main Power BI file                                  |
-| `DaxCheatSheet.pdf`  | Printable version of the dashboard                  |
-| `README.md`          | Project documentation                               |
-| `assets/`            | Dashboard preview image and logo (optional folder)  |
-
----
-
-## 🚀 How to Use
-
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/vm8181/Dax-Cheat-Sheet-Power-BI.git
