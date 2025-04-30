@@ -44,71 +44,33 @@ It pulls live data from the [DAX.Guide](https://dax.guide) portal and allows use
 | DAX.Guide        | Official source for DAX function metadata      |
 
 ---
-## 🧾 Power Query (M) Code – DAX Function
+## 🧾 Power Query (M) Code – Full DAX Metadata Loader
 
-The following M function extracts **Syntax**, **Return Values**, **Remarks**, and **Release Date** from a given DAX function URL using HTML scraping from [DAX.Guide](https://dax.guide):
+This combined M code includes:
+- A **main function** that loads multiple DAX function categories
+- A nested call to `DaxFunctionsDetails`, which scrapes Syntax, Return Values, Remarks, and Release Date from each DAX function page
 
 ```m
+//-------------------------------------
+// Main Loader Code
+//-------------------------------------
+**Category Level Data Loader**
 let
-    Source = (url as text) =>
-    let
-        Source = Web.Contents(url),
-
-        // Extract Syntax
-        Syntax = Html.Table(Source, {
-            {"Syntax", "section#syntax .notation"}
-        }, [RowSelector = "section#syntax"]),
-
-        // Extract Return Values
-        Return_Values = Html.Table(Source, {
-            {"Return Values", "section#returns div"},
-            {"Description", "section#returns p:last-of-type"}
-        }, [RowSelector = "section#returns"]),
-        ReturnValues = Table.SelectColumns(Table.AddColumn(Html.Table(Source, { // Extracts "Return values"
-            {"Values", "section#returns div"},
-            {"Description", "section#returns p:last-of-type"}// Extracts the description under Return values
-        }, [RowSelector = "section#returns"]), "Return Values", each Text.Combine({[Values], [Description]}, " ")), {"Return Values"}),
-
-
-        // Extract Remarks
-        Remarks = Html.Table(Source, {
-            {"Remarks", "section#remarks"}
-        }, [RowSelector = "section#remarks"]),
-        CleanedRemarks = Table.TransformColumns(Remarks, {{"Remarks", Text.Clean, type text}}),
-        ReplaceRemarks = Table.ReplaceValue(CleanedRemarks,"Remarks","",Replacer.ReplaceText,{"Remarks"}),
-        TrimmedRemarks = Table.TransformColumns(ReplaceRemarks, {{"Remarks", Text.Trim, type text}}),
-        // Release Date
-        FirstReleaseDate = Html.Table(Source, {
-            {"FirstReleaseDate", "section.first-release p"}}),
-
-
-
-        // Combine results into a single table
-        Combined = Table.FromRecords({[
-            Syntax = Syntax,
-            ReturnValues = ReturnValues,
-            Remarks = TrimmedRemarks,
-            ReleaseDate = FirstReleaseDate
-        ]})
-    in
-        Combined
+    Source = Web.BrowserContents("https://dax.guide/"),
+    ExtractedTable = Html.Table(Source, {
+        {"Function Type", "ul.multi-cols li a"}, 
+        {"Description", "ul.multi-cols li p"}
+    }, [RowSelector = "ul.multi-cols li"]),
+    #"Renamed Columns" = Table.RenameColumns(ExtractedTable,{{"Function Type", "DaxFunctionTypes"}})
 in
-    Source
----
-
-## 🔄 Dynamic Function Metadata Loader (Main M Script)
-
-This M code uses parameters like `ParamFunctionsName` and `ParamWebPath` to iterate through multiple DAX function categories on [DAX.Guide](https://dax.guide). It scrapes metadata including function name, description, syntax, return values, remarks, and first release date.
+    #"Renamed Columns"
 
 ```m
+**Functions Level Data Loader**
 let
-    // Reference the parameter
     FunctionCategoriesText = ParamFunctionsName,
-    
-    // Convert the comma-separated string to a list
     FunctionCategories = Text.Split(FunctionCategoriesText, ","),
 
-    // Define a function to get data for each category
     GetFunctionData = (FunctionName as text) =>
     let
         ParamFunctionName = "functions/" & FunctionName,
@@ -127,16 +89,13 @@ let
     in
         Result,
 
-    // Apply the function to all categories
     AllFunctionData = List.Transform(FunctionCategories, each GetFunctionData(_)),
     ExpandRecords = Table.FromRecords(AllFunctionData),
     ExpandedName = Table.ExpandTableColumn(ExpandRecords, "Name", {"Function Name", "Description"}),
     ExpandedType = Table.ExpandTableColumn(ExpandedName, "Type", {"Function Type"}),
-
     Filtered = Table.SelectRows(ExpandedType, each ([Function Name] <> null)),
 
     Links = Table.AddColumn(Filtered, "Link", each ParamWebPath & Text.Lower([Function Name])),
-
     AddExtractedData = Table.AddColumn(Links, "Extracted Data", each DaxFunctionsDetails([Link])),
 
     ExpandedAll = Table.ExpandTableColumn(AddExtractedData, "Extracted Data", {
@@ -160,3 +119,51 @@ let
     })
 in
     #"Changed Type"
+
+```m
+//-------------------------------------
+// DaxFunctionsDetails Function
+//-------------------------------------
+let
+    Source = (url as text) =>
+    let
+        Source = Web.Contents(url),
+
+        Syntax = Html.Table(Source, {
+            {"Syntax", "section#syntax .notation"}
+        }, [RowSelector = "section#syntax"]),
+
+        ReturnValues = Table.SelectColumns(
+            Table.AddColumn(
+                Html.Table(Source, {
+                    {"Values", "section#returns div"},
+                    {"Description", "section#returns p:last-of-type"}
+                }, [RowSelector = "section#returns"]),
+                "Return Values",
+                each Text.Combine({[Values], [Description]}, " ")
+            ),
+            {"Return Values"}
+        ),
+
+        Remarks = Html.Table(Source, {
+            {"Remarks", "section#remarks"}
+        }, [RowSelector = "section#remarks"]),
+        CleanedRemarks = Table.TransformColumns(Remarks, {{"Remarks", Text.Clean, type text}}),
+        ReplaceRemarks = Table.ReplaceValue(CleanedRemarks, "Remarks", "", Replacer.ReplaceText, {"Remarks"}),
+        TrimmedRemarks = Table.TransformColumns(ReplaceRemarks, {{"Remarks", Text.Trim, type text}}),
+
+        FirstReleaseDate = Html.Table(Source, {
+            {"FirstReleaseDate", "section.first-release p"}
+        }),
+
+        Combined = Table.FromRecords({[
+            Syntax = Syntax,
+            ReturnValues = ReturnValues,
+            Remarks = TrimmedRemarks,
+            ReleaseDate = FirstReleaseDate
+        ]})
+    in
+        Combined
+in
+    Source
+
